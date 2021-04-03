@@ -88,8 +88,19 @@ const Home = () => {
 
 
   const [cliente, setCliente] = useState({
-    telefono:'',
-    codPostal:''
+    tipo : '',
+    genero : '',
+    razonSocial:'',
+    nombre : '',
+    apePaterno : '',
+    apeMaterno : '',
+    correo : '',
+    telefono : '',
+    celular : '',
+    fecNacimiento : '',
+    codPostal :'' ,
+    estado : '',
+    municipio : ''
   });
   const [submitted, setSubmitted]= useState(false);
 
@@ -104,7 +115,13 @@ const Home = () => {
     clear: 'Claro'
   });
 
+  useEffect(async() => {
+    debugger;
+    if(cliente.codPostal.length === 5){
+      getEstadosByCodPostalAfirme(cliente.codPostal);
+    }
 
+    },[cliente.codPostal]);
   useEffect(async() => {
     setShowModal(true);
     const obj = new AfirmeService();
@@ -116,7 +133,9 @@ const Home = () => {
       const prod = await obj.getProductsAfirme();
 
       if(prod && prod.data){
-        setProductsAfirme(prod.data.data);
+        const prodDefault = prod.data.data.find(item => item.spreffix === 'TR');
+        clickProductoAfirme(prodDefault);
+        //setProductsAfirme(prod.data.data);
         console.log("AFIRME Products");
         console.log(prod.data);
       }
@@ -124,8 +143,11 @@ const Home = () => {
 
       const persons = await obj.getPersonsTypes();
 
-      if(persons && persons.data){
+      if(persons && persons.data){debugger;
         setPersonasList(persons.data.data);
+        let tem = {...cliente};
+        tem['tipo'] = persons.data.data[0];
+        setCliente(tem);
         console.log("AFIRME Persons");
         console.log(persons.data);
       }
@@ -193,7 +215,7 @@ const Home = () => {
     getSubMarcasAfirme(marca);
   }
   const clickProductoAfirme =(codeProduct)=>{
-    debugger;
+
     setSelectedProductAfirme(codeProduct);
     setSelectedMarcaAfirme(null);
     setMarcasAfirme([]);
@@ -206,11 +228,10 @@ const Home = () => {
     //getVehiclesTypeAfirme(codeProduct);
   }
   const clickVehiculoTypeAfirme =(vehiculoType)=>{
-    debugger;
+
     setSelectedVehicleTypeAfirme(vehiculoType);
     getMarcasAfirme(vehiculoType.id);
-    getUseTypesAfirme(selectedProductAfirme.id,vehiculoType.id)
-    //getVehiclesTypeAfirme(codeProduct);
+    //getUseTypesAfirme(selectedProductAfirme.id,vehiculoType.id)
   }
   const clickSubMarcaAfirme =(subMarca)=>{
 
@@ -222,6 +243,7 @@ const Home = () => {
     setSelectedAnioAfirme(anio);
     getModelosAfirme(selectedMarcaAfirme.id,selectedVehicleTypeAfirme.id, anio.id);
     getValueTypesAfirme(selectedProductAfirme.id,selectedVehicleTypeAfirme.id, anio.id);
+    getUseTypesAfirme(selectedProductAfirme.id,selectedVehicleTypeAfirme.id);
 
   }
   const clickModeloAfirme =(modelo)=>{
@@ -234,6 +256,10 @@ const Home = () => {
   const clickValueTypeAfirme =(valueType)=>{
 
     setSelectedValueTypeAfirme(valueType);
+    //getUseTypesAfirme();
+    //getValueTypesAfirme()
+
+
     //getModelosAfirme(selectedMarcaAfirme.id,selectedVehicleTypeAfirme.id, anio.id);
     //getValueTypesAfirme(selectedProductAfirme.id,selectedVehicleTypeAfirme.id, anio.id);
 
@@ -343,7 +369,7 @@ const Home = () => {
     }
     setShowModal(false);
   }
-  const getVehiclesTypeAfirme = async(productId) => {debugger;
+  const getVehiclesTypeAfirme = async(productId) => {
     setShowModal(true);
     const obj = new AfirmeService();
     const resp = await obj.getVehiclesTypeAfirme(productId);
@@ -406,6 +432,7 @@ const Home = () => {
     setShowModal(false);
 
   }
+
   const getValueTypesAfirme = async(productCode, vehicleTypeID, year) => {
     setShowModal(true);
 
@@ -414,9 +441,11 @@ const Home = () => {
 
     if (resp && resp.data){
       setValueTypesAfirme(resp.data.data);
+      setSelectedValueTypeAfirme(resp.data.data[0]);
       console.log("AFIRME Value types");
       console.log(resp.data.data);
     }
+
     setShowModal(false);
 
   }
@@ -428,6 +457,7 @@ const Home = () => {
 
     if (resp && resp.data){
       setUseTypesAfirme(resp.data.data);
+      setSelectedValueTypeAfirme(resp.data.data[0]);
       console.log("AFIRME use types");
       console.log(resp.data.data);
     }
@@ -435,13 +465,13 @@ const Home = () => {
 
   }
 
-  const getEstadosByCodPostalAfirme = async(codPostal) => {
+  const getEstadosByCodPostalAfirme = async(codigoPostal) => {
     setShowModal(true);
 
     const obj = new AfirmeService();
-    const resp = await obj.getEstadoByCP(codPostal);
-debugger;
-    if (resp && resp.data){
+    const resp = await obj.getEstadoByCP(codigoPostal);
+
+    if (resp && resp.data && resp.data.data){
       //set(resp.data.data);
       console.log("AFIRME use types");
       console.log(resp.data.data);
@@ -453,12 +483,9 @@ debugger;
       tem.municipio = resp.data.data.nombreCiudad;
 
       setCliente(tem);
-
-
-
-
     }
     setShowModal(false);
+
 
   }
 
@@ -494,15 +521,51 @@ debugger;
     });
 
   }
-  const incrementSteps = (e) =>{
 
+  const emailValido = (mail) => {
+    let emailRegex = /^(([^<>()[\]\.,;:\s@\"]+(\.[^<>()[\]\.,;:\s@\"]+)*)|(\".+\"))@(([^<>()[\]\.,;:\s@\"]+\.)+[^<>()[\]\.,;:\s@\"]{2,})$/i
+
+    return emailRegex.test(mail);
+  }
+
+  const validaDatosVehiculo = () => {
+    if(selectedVehicleTypeAfirme && selectedMarcaAfirme && selectedSubMarcaAfirme && selectedAnioAfirme && selectedModeloAfirme){
+      return true;
+    }
+    return false;
+  }
+
+  const validaDatosCliente = () => {
+    debugger;
+    if(cliente.correo && emailValido(cliente.correo) && cliente.celular.length > 0 && cliente.celular.length === 10
+        && cliente.fecNacimiento && cliente.codPostal && cliente.codPostal.length === 5 && cliente.estado
+        && cliente.municipio
+    ){
+      if(cliente.telefono.length > 0 && cliente.telefono.length  !== 10){
+        return false;
+      }
+      return true;
+    }
+    return false;
+  }
+
+  const incrementSteps = (e) => {
+    debugger;
     e.preventDefault();
-    //
-    // if(stepActive === 1){
-    //   setSubmitted(true);
-    // }else{
-      setStepActive(stepActive +1);
-   // }
+    setSubmitted(true);
+
+    if(stepActive === 0){
+
+      if(validaDatosVehiculo()){
+        setStepActive(stepActive + 1);
+      }
+
+    }else if(stepActive === 1){
+
+      if(validaDatosCliente()){
+        setStepActive(stepActive + 1);
+      }
+    }
 
   }
   const generoTemplate = (option) => {
@@ -533,30 +596,50 @@ debugger;
     if(e.currentTarget.value.length===10)return false;
   }
 
+  const onInputCliente =(evt) => {debugger;
+    let value = evt.target.value;
+
+    let tem = {...cliente};
+    tem[evt.target.name] = value;
+    setCliente(tem);
+  }
+
+
   const onInputTelefono =(evt)=>{
-    const financialGoal = (evt.target.validity.valid) ?
+    const inputTelefono = (evt.target.validity.valid) ?
         evt.target.value : cliente.telefono;
 
     let tem = {...cliente};
-    if(financialGoal.length <= 10) {
-      tem.telefono = financialGoal;
+    if(inputTelefono.length <= 10) {
+      tem.telefono = inputTelefono;
       setCliente(tem);
     }
   }
   const onInputCodPostal =(evt)=>{
-    const financialGoal = (evt.target.validity.valid) ?
-        evt.target.value : cliente.codPostal;
+    const codPostal = evt.target.value;
 
     let tem = {...cliente};
-    if(financialGoal.length <= 5) {
-      tem.codPostal = financialGoal;
+
+    if(codPostal.length <= 5) {
+      tem.codPostal = codPostal;
       setCliente(tem);
-      if(financialGoal.length === 5){debugger;
-        getEstadosByCodPostalAfirme(financialGoal);
-      }
     }
   }
-  const onInputCelular =(evt)=>{
+
+  const onBlurCodPostal = (evt) => {
+    debugger;
+    //if (evt.keyCode === 40) {
+      //e.target.blur();
+      // or set the state as you wish
+      const codPostal = evt.target.value;
+
+      if(codPostal.length === 5){
+        getEstadosByCodPostalAfirme(codPostal);
+      }
+    //}
+
+  }
+  const onInputCelular = (evt) => {
     const financialGoal = (evt.target.validity.valid) ?
         evt.target.value : cliente.celular;
 
@@ -592,32 +675,32 @@ debugger;
                       <form>
                         <div className="row">
 
-                          <div className="col-12">
-                            <label htmlFor="exampleFormControlInput1" className="form-label">Productos Afirme</label>
-                            <Dropdown
-                                value={selectedProductAfirme}
-                                options={productsAfirme}
-                                onChange={(e) => {clickProductoAfirme(e.value)}}
-                                placeholder="Selecciona Producto"
-                                optionLabel="description"
-                                filter showClear filterBy="description"
-                            />
-                          </div>
-                          <div className="col-12">
-                            <label htmlFor="exampleFormControlInput1" className="form-label">Oficinas Afirme</label>
-                            <Dropdown
-                                value={selectedOficinaAfirme}
-                                options={oficinasAfirme}
-                                onChange={(e) => {clickOficinaAfirme(e.value)}}
-                                placeholder="Selecciona Oficina"
-                                optionLabel="description"
-                                filter showClear filterBy="description"
-                            />
-                          </div>
+                          {/*<div className="col-12">*/}
+                            {/*<label htmlFor="exampleFormControlInput1" className="form-label">Productos Afirme</label>*/}
+                            {/*<Dropdown*/}
+                                {/*value={selectedProductAfirme}*/}
+                                {/*options={productsAfirme}*/}
+                                {/*onChange={(e) => {clickProductoAfirme(e.value)}}*/}
+                                {/*placeholder="Selecciona Producto"*/}
+                                {/*optionLabel="description"*/}
+                                {/*filter showClear filterBy="description"*/}
+                            {/*/>*/}
+                          {/*</div>*/}
+                          {/*<div className="col-12">*/}
+                            {/*<label htmlFor="exampleFormControlInput1" className="form-label">Oficinas Afirme</label>*/}
+                            {/*<Dropdown*/}
+                                {/*value={selectedOficinaAfirme}*/}
+                                {/*options={oficinasAfirme}*/}
+                                {/*onChange={(e) => {clickOficinaAfirme(e.value)}}*/}
+                                {/*placeholder="Selecciona Oficina"*/}
+                                {/*optionLabel="description"*/}
+                                {/*filter showClear filterBy="description"*/}
+                            {/*/>*/}
+                          {/*</div>*/}
 
 
-                          <div className="col-12">
-                            <label htmlFor="exampleFormControlInput1" className="form-label">Tipos de vehiculos Afirme</label>
+                          <div className="col-3">
+                            <label htmlFor="exampleFormControlInput1" className="form-label">Tipo de vehiculo</label>
                             <Dropdown
                                 value={selectedVehicleTypeAfirme}
                                 options={vehiclesTypeAfirme}
@@ -625,11 +708,14 @@ debugger;
                                 placeholder="Selecciona tipo de vehiculo"
                                 optionLabel="description"
                                 filter showClear filterBy="description"
+                                className={classNames({ 'p-invalid': submitted && !selectedVehicleTypeAfirme})}
+
                             />
+                            {submitted && !selectedVehicleTypeAfirme && <small className="p-error">Campo es requerido.</small>}
                           </div>
 
-                          <div className="col-12">
-                            <label htmlFor="exampleFormControlInput1" className="form-label">Marca Afirme</label>
+                          <div className="col-3">
+                            <label htmlFor="exampleFormControlInput1" className="form-label">Marca</label>
                             <Dropdown
                                 value={selectedMarcaAfirme}
                                 options={marcasAfirme}
@@ -637,11 +723,14 @@ debugger;
                                 placeholder="Selecciona Marca"
                                 optionLabel="description"
                                 filter showClear filterBy="description"
+                                className={classNames({ 'p-invalid': submitted && !selectedMarcaAfirme})}
+
                             />
+                            {submitted && !selectedMarcaAfirme && <small className="p-error">Campo es requerido.</small>}
                           </div>
 
-                          <div className="col-12">
-                            <label htmlFor="exampleFormControlInput1" className="form-label">SubMarca Afirme</label>
+                          <div className="col-3">
+                            <label htmlFor="exampleFormControlInput1" className="form-label">SubMarca</label>
                             <Dropdown
                                 value={selectedSubMarcaAfirme}
                                 options={subMarcasAfirme}
@@ -649,9 +738,12 @@ debugger;
                                 placeholder="Selecciona SubMarca"
                                 optionLabel="description"
                                 filter showClear filterBy="description"
+                                className={classNames({ 'p-invalid': submitted && !selectedSubMarcaAfirme})}
+
                             />
+                            {submitted && !selectedSubMarcaAfirme && <small className="p-error">Campo es requerido.</small>}
                           </div>
-                          <div className="col-12">
+                          <div className="col-3">
                             <label htmlFor="exampleFormControlInput1" className="form-label">Año Afirme</label>
                             <Dropdown
                                 value={selectedAnioAfirme}
@@ -660,10 +752,14 @@ debugger;
                                 placeholder="Selecciona Año"
                                 optionLabel="description"
                                 filter showClear filterBy="description"
+                                className={classNames({ 'p-invalid': submitted && !selectedAnioAfirme})}
+
                             />
+                            {submitted && !selectedAnioAfirme && <small className="p-error">Campo es requerido.</small>}
+
                           </div>
-                          <div className="col-12">
-                            <label htmlFor="exampleFormControlInput1" className="form-label">Modelos Afirme</label>
+                          <div className="col-4">
+                            <label htmlFor="exampleFormControlInput1" className="form-label">Modelos</label>
                             <Dropdown
                                 value={selectedModeloAfirme}
                                 options={modelosAfirme}
@@ -671,83 +767,82 @@ debugger;
                                 onChange={(e) => {clickModeloAfirme(e.value)}}
                                 placeholder="Selecciona Modelo Afirme"
                                 filter showClear filterBy="description"
+                                className={classNames({ 'p-invalid': submitted && !selectedModeloAfirme})}
                             />
+                            {submitted && !selectedModeloAfirme && <small className="p-error">Campo es requerido.</small>}
                           </div>
 
-                          <div className="col-12">
-                            <label htmlFor="exampleFormControlInput1" className="form-label">Uso Vehiculo Afirme</label>
-                            <Dropdown
-                                value={selectedModeloAfirme}
-                                options={modelosAfirme}
-                                optionLabel="description"
-                                onChange={(e) => {clickUseTypeAfirme(e.value)}}
-                                placeholder="Selecciona Uso Vehiculo Afirme"
-                                filter showClear filterBy="description"
-                            />
-                          </div>
+                          {/*<div className="col-12">*/}
+                            {/*<label htmlFor="exampleFormControlInput1" className="form-label">Uso Vehiculo Afirme</label>*/}
+                            {/*<Dropdown*/}
+                                {/*value={selectedUseTypeAfirme}*/}
+                                {/*options={useTypesAfirme}*/}
+                                {/*optionLabel="description"*/}
+                                {/*onChange={(e) => {clickUseTypeAfirme(e.value)}}*/}
+                                {/*placeholder="Selecciona Uso Vehiculo Afirme"*/}
+                                {/*filter showClear filterBy="description"*/}
+                            {/*/>*/}
+                          {/*</div>*/}
 
-                          <div className="col-12">
-                            <label htmlFor="exampleFormControlInput1" className="form-label">Tipo de Valor Afirme</label>
-                            <Dropdown
-                                value={selectedModeloAfirme}
-                                options={modelosAfirme}
-                                optionLabel="description"
-                                onChange={(e) => {clickValueTypeAfirme(e.value)}}
-                                placeholder="Selecciona Tipo Valor"
-                                filter showClear filterBy="description"
-                            />
-                          </div>
+                          {/*<div className="col-12">*/}
+                            {/*<label htmlFor="exampleFormControlInput1" className="form-label">Tipo de Valor Afirme</label>*/}
+                            {/*<Dropdown*/}
+                                {/*value={selectedValueTypeAfirme}*/}
+                                {/*options={valueTypesAfirme}*/}
+                                {/*optionLabel="description"*/}
+                                {/*onChange={(e) => {clickValueTypeAfirme(e.value)}}*/}
+                                {/*placeholder="Selecciona Tipo Valor"*/}
+                                {/*filter showClear filterBy="description"*/}
+                            {/*/>*/}
+                          {/*</div>*/}
 
-                          <div className="col">
-                            <label htmlFor="exampleFormControlInput1" className="form-label">Marca</label>
-                            <Dropdown
-                                value={selectedMarca}
-                                options={marcas}
-                                onChange={(e) => {clickMarca(e.value)}}
-                                placeholder="Selecciona Marca"
-                                filter showClear filterBy="label"
-                            />
-                          </div>
-                          <div className="col">
-                            <label htmlFor="exampleFormControlInput1" className="form-label">Submarca</label>
-                            <Dropdown
-                                value={selectedSubMarca}
-                                options={subMarcas}
-                                onChange={(e) => {clickSubMarca(e.value)}}
-                                placeholder="Selecciona SubMarca"
-                                filter showClear filterBy="label"
-                            />
-                          </div>
-                          <div className="col">
-                            <label htmlFor="exampleFormControlInput1" className="form-label">Modelo</label>
-                            <Dropdown
-                                value={selectedModelo}
-                                options={modelos}
-                                onChange={(e) => {clickModelo(e.value, selectedSubMarca)}}
-                                placeholder="Selecciona Modelo"
-                                filter showClear filterBy="label"
-                            />
-                          </div>
+                          {/*<div className="col">*/}
+                            {/*<label htmlFor="exampleFormControlInput1" className="form-label">Marca</label>*/}
+                            {/*<Dropdown*/}
+                                {/*value={selectedMarca}*/}
+                                {/*options={marcas}*/}
+                                {/*onChange={(e) => {clickMarca(e.value)}}*/}
+                                {/*placeholder="Selecciona Marca"*/}
+                                {/*filter showClear filterBy="label"*/}
+                            {/*/>*/}
+                          {/*</div>*/}
+                          {/*<div className="col">*/}
+                            {/*<label htmlFor="exampleFormControlInput1" className="form-label">Submarca</label>*/}
+                            {/*<Dropdown*/}
+                                {/*value={selectedSubMarca}*/}
+                                {/*options={subMarcas}*/}
+                                {/*onChange={(e) => {clickSubMarca(e.value)}}*/}
+                                {/*placeholder="Selecciona SubMarca"*/}
+                                {/*filter showClear filterBy="label"*/}
+                            {/*/>*/}
+                          {/*</div>*/}
+                          {/*<div className="col">*/}
+                            {/*<label htmlFor="exampleFormControlInput1" className="form-label">Modelo</label>*/}
+                            {/*<Dropdown*/}
+                                {/*value={selectedModelo}*/}
+                                {/*options={modelos}*/}
+                                {/*onChange={(e) => {clickModelo(e.value, selectedSubMarca)}}*/}
+                                {/*placeholder="Selecciona Modelo"*/}
+                                {/*filter showClear filterBy="label"*/}
+                            {/*/>*/}
+                          {/*</div>*/}
                         </div>
 
-                        <div className="row">
 
 
-                        </div>
+                        {/*<div className="row">*/}
+                          {/*<div className="col">*/}
+                            {/*<label htmlFor="exampleFormControlInput1" className="form-label">Version/Transmisión</label>*/}
+                            {/*<Dropdown*/}
+                                {/*value={selectedVersion}*/}
+                                {/*options={versiones}*/}
+                                {/*onChange={(e) => {clickVersion(e.value)}}*/}
+                                {/*placeholder="Selecciona Version"*/}
+                                {/*filter showClear filterBy="label"*/}
+                            {/*/>*/}
+                          {/*</div>*/}
 
-                        <div className="row">
-                          <div className="col">
-                            <label htmlFor="exampleFormControlInput1" className="form-label">Version/Transmisión</label>
-                            <Dropdown
-                                value={selectedVersion}
-                                options={versiones}
-                                onChange={(e) => {clickVersion(e.value)}}
-                                placeholder="Selecciona Version"
-                                filter showClear filterBy="label"
-                            />
-                          </div>
-
-                        </div>
+                        {/*</div>*/}
                         <div className="row">
                           <div className="col">
                             <Button style={{float:'right'}} onClick={(e)=>incrementSteps(e)} label="Continuar" className="p-button-rounded" />
@@ -854,165 +949,65 @@ debugger;
                       </h5>
                       <hr/>
                       <div className="card-tex">
-                        <form class="row g-3 needs-validation" novalidate>
+                        <form className="row g-3 needs-validation">
 
-                          <div className="col-md-12">
-                            <label htmlFor="username" className="form-label">Tipo de Persona</label>
-                            <SelectButton value={personaSelected}  onChange={(e) => setPersonaSelected(e.value)} options={personasList} itemTemplate={personaTemplate} />
-                          </div>
+                          {/*<div className="col-md-12">*/}
+                            {/*<label htmlFor="username" className="form-label">Tipo de Persona</label>*/}
+                            {/*<SelectButton value={personaSelected} name="tipo"  onChange={(e) => onInputCliente(e)} options={personasList} itemTemplate={personaTemplate} />*/}
+                          {/*</div>*/}
 
 
-                            <div className="col-md-4">
-                              <label htmlFor="txtNombre" className="form-label">Nombre</label>
-                              <InputText value={cliente.nombre} id="txtNombre"  className="form-control"/>
-                            </div>
-                            <div className="col-md-4">
-                              <label htmlFor="txtApePaterno" className="form-label">Apellido Paterno</label>
-                              <InputText value={cliente.apePaterno} id="txtApePaterno"  className="form-control"/>
-                            </div>
-                            <div className="col-md-4">
-                              <label htmlFor="txtApeMaterno" className="form-label">Apellido Materno</label>
-                              <InputText id="txtApeMaterno" value={cliente.apeMaterno}  className="form-control"/>
-                            </div>
 
                             <div className="col-md-3">
-                              <label htmlFor="txtCorreo" className="form-label">Correo</label>
-                              <InputText id="txtCorreo"  className="form-control" value={cliente.correo}/>
+                              <label htmlFor="correo" className="form-label">Correo</label>
+                              <InputText id="correo" name="correo" onInput={(e)=>onInputCliente(e)}  value={cliente.correo} className={classNames({ 'p-invalid': (submitted && !cliente.correo || submitted && cliente.correo.length > 0 && !emailValido(cliente.correo)) })}/>
+                              {submitted && !cliente.correo && <small className="p-error">Correo es requerido.</small>}
+                              {submitted && cliente.correo.length > 0 && !emailValido(cliente.correo)  && <small className="p-error">Correo es invalido.</small>}
                             </div>
                             <div className="col-md-3">
-                              <label htmlFor="txtTelefono" className="form-label">Telefono</label>
-                              <InputText id="txtTelefono" onInput={(e)=>onInputTelefono(e)} value={cliente.telefono} pattern="[0-9]*" className="form-control" />
+                              <label htmlFor="telefono" className="form-label">Telefono</label>
+                              <InputText id="telefono" name="telefono" onInput={(e)=>onInputTelefono(e)} value={cliente.telefono} pattern="[0-9]*" className="form-control" className={classNames({ 'p-invalid': submitted && cliente.telefono.length >0 && cliente.telefono.length < 10 })} />
+                               {submitted  && cliente.telefono.length > 0 && cliente.telefono.length < 10 && <small className="p-error">Telefono debe contener 10 digitos.</small>}
+
                             </div>
                           <div className="col-md-3">
-                            <label htmlFor="txtCelular" className="form-label">Celular</label>
-                            <InputText id="txtCelular" onInput={(e)=>onInputCelular(e)} value={cliente.celular} pattern="[0-9]*" className="form-control" />
+                            <label htmlFor="celular" className="form-label">Celular</label>
+                            <InputText id="celular" name="celular" onInput={(e)=>onInputCelular(e)} value={cliente.celular} pattern="[0-9]*" className="form-control" className={classNames({ 'p-invalid': (submitted && !cliente.celular || submitted && cliente.celular.length >0 && cliente.celular.length < 10) })}/>
+                            {submitted && !cliente.celular && <small className="p-error">Celular es requerido.</small>}
+
+                            {submitted && cliente.celular.length >0 && cliente.celular.length < 10 && <small className="p-error">Celular debe contener 10 digitos.</small>}
+
                           </div>
                             <div className="col-md-3">
-                              <label htmlFor="txtFecNacimiento" className="form-label">Fecha de Nacimiento</label>
-                              <Calendar className="" id="txtFecNacimiento" locale="es" dateFormat="dd/mm/yy" value={cliente.fecNacimiento} />
+                              <label htmlFor="fecNacimiento" className="form-label">Fecha de Nacimiento</label>
+                              <Calendar showIcon={true} onChange={(e)=>onInputCliente(e)} name="fecNacimiento" id="fecNacimiento" locale="es" dateFormat="dd/mm/yy" value={cliente.fecNacimiento} inputClassName={classNames({ 'p-invalid': submitted && !cliente.fecNacimiento})} />
+                              {submitted && !cliente.fecNacimiento && <small className="p-error">Fecha de nacimiento es requerida.</small>}
+
                             </div>
                             <div className="col-md-3">
-                              <label htmlFor="txtCodPostal" className="form-label">Codigo Postal</label>
-                              <InputText onInput={(e)=>onInputCodPostal(e)} id="txtCodPostal"  aria-describedby="cp-help" keyfilter="int"  required autoFocus className={classNames({ 'p-invalid': submitted && !cliente.codPostal })}/>
-                              {/*<small id="cp-help" className="p-error p-d-block">Username is not available.</small>*/}
-
-
-                              {/*<InputText id="name" value={product.name} onChange={(e) => onInputChange(e, 'name')} required autoFocus className={classNames({ 'p-invalid': submitted && !product.name })} />*/}
+                              <label htmlFor="codPostal" className="form-label">Codigo Postal</label>
+                              <InputText name="codPostal" onInput={(e)=>onInputCodPostal(e)} id="codPostal"  aria-describedby="cp-help" keyfilter="int"  required className={classNames({ 'p-invalid': (submitted && !cliente.codPostal || submitted && cliente.codPostal && cliente.codPostal.length < 5)  })}/>
                               {submitted && !cliente.codPostal && <small className="p-error">Codigo Postal es requerido.</small>}
+                              {submitted && cliente.codPostal &&  cliente.codPostal.length < 5 && <small className="p-error">Codigo Postal debe contener 5 digitos.</small>}
 
                             </div>
                           <div className="col-md-3">
                             <label htmlFor="txtEstado" className="form-label">Estado</label>
-                            <InputText id="txtEstado"  aria-describedby="cp-help" required autoFocus className={classNames({ 'p-invalid': submitted && !cliente.estado })}/>
-                            {/*<small id="cp-help" className="p-error p-d-block">Username is not available.</small>*/}
-
-
-                            {/*<InputText id="name" value={product.name} onChange={(e) => onInputChange(e, 'name')} required autoFocus className={classNames({ 'p-invalid': submitted && !product.name })} />*/}
+                            <InputText disabled id="txtEstado" value={cliente.estado}  aria-describedby="cp-help" required className={classNames({ 'p-invalid': submitted && !cliente.estado })}/>
                             {submitted && !cliente.estado && <small className="p-error">Estado es requerido.</small>}
 
                           </div>
                           <div className="col-md-3">
                           <label htmlFor="txtMunicipio" className="form-label">Municipio</label>
-                          <InputText id="txtMunicipio"  aria-describedby="cp-help" keyfilter="int" min={5} maxlength={5} required autoFocus className={classNames({ 'p-invalid': submitted && !cliente.municipio })}/>
-                          {/*<small id="cp-help" className="p-error p-d-block">Username is not available.</small>*/}
+                          <InputText disabled id="txtMunicipio" value={cliente.municipio}  aria-describedby="cp-help" keyfilter="int"  required className={classNames({ 'p-invalid': submitted && !cliente.municipio })}/>
+                           {submitted && !cliente.municipio && <small className="p-error">Municipio es requerido.</small>}
 
-
-                          {/*<InputText id="name" value={product.name} onChange={(e) => onInputChange(e, 'name')} required autoFocus className={classNames({ 'p-invalid': submitted && !product.name })} />*/}
-                          {submitted && !cliente.municipio && <small className="p-error">Municipio es requerido.</small>}
-
-                        </div>
-
-                            <div className="col-md-12">
-                              <label htmlFor="username" className="form-label">Genero</label>
-
-                              {/*<SelectButton options={generoList} onChange={(e) => setValue3(e.value)} itemTemplate={generoTemplate} />*/}
-                              <SelectButton value={generoSelected}  onChange={(e) => setGeneroSelected(e.value)} options={generoList} itemTemplate={generoTemplate} />
-                            </div>
-
+                          </div>
 
                             <div className="col-md-12">
                               <Button style={{float:'right'}} onClick={(e)=>incrementSteps(e)} label="Continuar" className="p-button-rounded" />
                             </div>
 
-                          {/*<div className="row">*/}
-
-                          {/*<div className="col">*/}
-                          {/*<label htmlFor="exampleFormControlInput1" className="form-label">Tipo de Auto</label>*/}
-                          {/*<select defaultValue={'DEFAULT'} className="form-select form-select-lg rounded-pill mb-3 fondoceleste"*/}
-                          {/*aria-label=".form-select-lg example">*/}
-                          {/*<option selected>Open this select menu</option>*/}
-                          {/*<option value="1">One</option>*/}
-                          {/*</select>*/}
-                          {/*</div>*/}
-                          {/*<div className="col">*/}
-                          {/*<label htmlFor="exampleFormControlInput1" className="form-label">Año</label>*/}
-                          {/*<select defaultValue={'DEFAULT'} className="form-select form-select-lg rounded-pill mb-3 fondoceleste"*/}
-                          {/*aria-label=".form-select-lg example">*/}
-                          {/*<option selected>Open this select menu</option>*/}
-                          {/*<option value="1">One</option>*/}
-                          {/*</select>*/}
-                          {/*</div>*/}
-                          {/*</div>*/}
-                          {/*<div className="row">*/}
-                          {/*<div className="col">*/}
-                          {/*<label htmlFor="exampleFormControlInput1" className="form-label">Uso</label>*/}
-                          {/*<select defaultValue={'DEFAULT'} className="form-select form-select-lg rounded-pill mb-3 fondoceleste"*/}
-                          {/*aria-label=".form-select-lg example">*/}
-                          {/*<option selected>Open this select menu</option>*/}
-                          {/*<option value="1">One</option>*/}
-                          {/*</select>*/}
-                          {/*</div>*/}
-                          {/*<div className="col">*/}
-                          {/*<label htmlFor="exampleFormControlInput1" className="form-label">Riesgo de la Carga</label>*/}
-                          {/*<select defaultValue={'DEFAULT'} className="form-select form-select-lg rounded-pill mb-3 fondoceleste"*/}
-                          {/*aria-label=".form-select-lg example">*/}
-                          {/*<option selected>Open this select menu</option>*/}
-                          {/*<option value="1">One</option>*/}
-                          {/*</select>*/}
-                          {/*</div>*/}
-                          {/*<div className="col">*/}
-                          {/*<label htmlFor="exampleFormControlInput1" className="form-label">Descripción del Riesgo</label>*/}
-                          {/*<select defaultValue={'DEFAULT'} className="form-select form-select-lg rounded-pill mb-3 fondoceleste"*/}
-                          {/*aria-label=".form-select-lg example">*/}
-                          {/*<option selected>Open this select menu</option>*/}
-                          {/*<option value="1">One</option>*/}
-                          {/*</select>*/}
-                          {/*</div>*/}
-                          {/*</div>*/}
-                          {/*<div className="row">*/}
-                          {/*<div className="col">*/}
-                          {/*<label htmlFor="exampleFormControlInput1" className="form-label">Servicio</label>*/}
-                          {/*<select defaultValue={'DEFAULT'} className="form-select form-select-lg rounded-pill mb-3 fondoceleste"*/}
-                          {/*aria-label=".form-select-lg example">*/}
-                          {/*<option selected>Open this select menu</option>*/}
-                          {/*<option value="1">One</option>*/}
-                          {/*</select>*/}
-                          {/*</div>*/}
-                          {/*<div className="col">*/}
-                          {/*<label htmlFor="exampleFormControlInput1" className="form-label">Remolque</label>*/}
-                          {/*<select defaultValue={'DEFAULT'} className="form-select form-select-lg rounded-pill mb-3 fondoceleste"*/}
-                          {/*aria-label=".form-select-lg example">*/}
-                          {/*<option selected>Open this select menu</option>*/}
-                          {/*<option value="1">One</option>*/}
-                          {/*</select>*/}
-                          {/*</div>*/}
-                          {/*<div className="col">*/}
-                          {/*<label htmlFor="exampleFormControlInput1" className="form-label">Puertas</label>*/}
-                          {/*<select defaultValue={'DEFAULT'} className="form-select form-select-lg rounded-pill mb-3 fondoceleste"*/}
-                          {/*aria-label=".form-select-lg example">*/}
-                          {/*<option selected>Open this select menu</option>*/}
-                          {/*<option value="1">One</option>*/}
-                          {/*</select>*/}
-                          {/*</div>*/}
-                          {/*<div className="col">*/}
-                          {/*<label htmlFor="exampleFormControlInput1" className="form-label">Código Postal</label>*/}
-                          {/*<select defaultValue={'DEFAULT'} className="form-select form-select-lg rounded-pill mb-3 fondoceleste"*/}
-                          {/*aria-label=".form-select-lg example">*/}
-                          {/*<option selected>Open this select menu</option>*/}
-                          {/*<option value="1">One</option>*/}
-                          {/*</select>*/}
-                          {/*</div>*/}
-                          {/*</div>*/}
                         </form>
                       </div>
                     </div>
